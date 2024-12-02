@@ -19,8 +19,8 @@ class Environment(object):
         return self.unused
 
     def step(self, action: Action):
-        self.seq.append(action.text)
-        del self.unused[self.unused.index(action.text)]
+        self.seq.append(action.token)
+        del self.unused[self.unused.index(action.token)]
 
     def copy(self):
         new = Environment(deepcopy(self.unused))

@@ -47,30 +47,6 @@ class Node(object):
         return self.value_sum / self.visit_count
 
 
-# Core Monte Carlo Tree Search algorithm.
-# To decide on an action, we run N simulations, always starting at the root of
-# the search tree and traversing the tree according to the UCB formula until we
-# reach a leaf node.
-def run_mcts(config: Dict, root: Node, game,
-             network: Network):
-    min_max_stats = MinMaxStats()
-
-    for _ in range(config['num_simulations']):
-        node = root
-        search_path = [node]
-
-        while node.expanded():
-            action, node = select_child(config, node, min_max_stats)
-            search_path.append(node)
-
-        network_output = network.inference(game.observation())
-
-        expand_node(node, game, network_output, network)
-
-        backpropagate(search_path, network_output.value,
-                      config['discount'], min_max_stats)
-
-
 # Select the child with the highest UCB score.
 def select_child(config: Dict, node: Node,
                  min_max_stats: MinMaxStats):
@@ -85,11 +61,21 @@ def select_child(config: Dict, node: Node,
     return best_action, best_child
 
 
-def expand_node(node: Node, game, network_output: NetworkOutput, network: Network):
+def expand_node(config: Dict, node: Node, game, network_output: NetworkOutput, network: Network):
     node.reward = network_output.reward
     actions = [Action(t, network.get_token_id(t)) for t in game.legal_actions()]
-    policy = {a: math.exp(network_output.policy_logits[a.index]) for a in actions}
-    policy_sum = sum(policy.values())
+
+    policy, policy_sum = {}, 0
+    for a in actions:
+        logit = network_output.policy_logits[a.index]
+        t = config['policy_temperature']
+        if a.token in game.seq:
+            t = config['repetition_penalty']
+        z = math.exp(logit / t)
+
+        policy_sum += z
+        policy[a] = z
+
     for action, p in policy.items():
         g = game.copy()
         g.step(action)

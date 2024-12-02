@@ -1,7 +1,7 @@
 class Action(object):
 
-    def __init__(self, text: str, index: int):
-        self.text = text
+    def __init__(self, token: str, index: int):
+        self.token = token
         self.index = index
 
     def __hash__(self):

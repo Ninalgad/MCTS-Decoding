@@ -1,4 +1,5 @@
 from search import *
+from mcts import run_mcts
 
 
 class PermAgent:
