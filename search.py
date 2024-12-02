@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 import numpy as np
 import math
-
+from scipy.special import softmax
 from utils import *
 from network import NetworkOutput, Network
 from action import Action
@@ -65,21 +65,19 @@ def expand_node(config: Dict, node: Node, game, network_output: NetworkOutput, n
     node.reward = network_output.reward
     actions = [Action(t, network.get_token_id(t)) for t in game.legal_actions()]
 
-    policy, policy_sum = {}, 0
-    for a in actions:
-        logit = network_output.policy_logits[a.index]
-        t = config['policy_temperature']
-        if a.token in game.seq:
-            t = config['repetition_penalty']
-        z = math.exp(logit / t)
+    policy_logits = np.array([network_output.policy_logits[a.index] for a in actions], "float32")
+    policy_logits -= policy_logits.max()
 
-        policy_sum += z
-        policy[a] = z
+    t = config['policy_temperature']
+    t_pen = config['repetition_penalty'] * t
+    temperature = np.array([t_pen if (a.token in game.hist) else t for a in actions], "float32")
 
-    for action, p in policy.items():
+    policy = softmax(policy_logits * temperature)
+
+    for a, p in zip(actions, policy):
         g = game.copy()
-        g.step(action)
-        node.children[action] = Node(p / policy_sum, g)
+        g.step(a)
+        node.children[a] = Node(p, g)
 
 
 def select_action(config: Dict, node: Node):

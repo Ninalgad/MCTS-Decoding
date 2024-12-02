@@ -19,7 +19,7 @@ def run_mcts(config: Dict, root: Node, game,
 
         network_output = network.inference(game.observation())
 
-        expand_node(node, game, network_output, network)
+        expand_node(config, node, game, network_output, network)
 
         backpropagate(search_path, network_output.value,
                       config['discount'], min_max_stats)

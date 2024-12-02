@@ -1,4 +1,4 @@
-import transformers, torch
+import torch
 from typing import List, NamedTuple
 from math import exp
 
@@ -10,15 +10,12 @@ class NetworkOutput(NamedTuple):
 
 
 class PerplexityCalculator:
-    def __init__(self, model_path, device, prompt=""):
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_path)
-        self.model = transformers.AutoModelForCausalLM.from_pretrained(model_path, device_map="cpu",
-                                                                       torch_dtype=torch.float32, )
-        self.loss_fct = torch.nn.CrossEntropyLoss(reduction='none')
-        self.model.eval()
-        self.model.to(device)
-        self.prompt = prompt
+    def __init__(self, model, tokenizer, device, prompt=""):
+        self.model = model
+        self.tokenizer = tokenizer
         self.device = device
+        self.prompt = prompt
+        self.loss_fct = torch.nn.CrossEntropyLoss(reduction='none')
 
     def get_perplexity(self, input_texts):
         single_input = isinstance(input_texts, str)
